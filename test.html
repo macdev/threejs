@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no, address=no, email=no">
+<title>FUN 뻔한 놀이터 | 주사위 놀이터</title>
+<style type="text/css">
+
+</style>
+</head>
+
+<body style="margin: 0">
+<!-- Wrapper -->
+	<div class="wrapper">
+		<!-- Header -->
+		<header class="header">
+			<h1 class="htype-01">CANVAS 3D</h1>
+		</header>
+		<!-- //Header -->
+
+		<!-- contents -->
+		<div class="content-wrap">
+			<div class="content">
+				<div id="selector_div">
+					<div class="center_field">
+						<input type="hidden" id="set" value="2d6"></input><br />
+					</div>
+				</div>
+				<div id="canvas" style="width: 100%;height: 640px; display: block;"></div>
+				
+				<button type="button" id="goDice">던지기</button>
+				<button type="button" class="none" id="reset">초기화</button>
+			</div>
+		</div>
+		
+		<!-- // contents -->
+
+
+		<!-- <footer class="footer main">
+			<div class="foot-btns">
+				<button type="button" class="fbtn-home">HOME</button>
+				<button type="button" class="fbtn-medi">복약관리</button>
+				<button type="button" class="fbtn-goal">건강목표</button>
+				<button type="button" class="fbtn-hosp">병원찾기</button>
+			</div>
+		</footer> -->
+	</div>
+<!-- //Wrapper -->
+
+<script type="text/javascript" src="libs/jquery.min.js"></script>
+<script type="text/javascript" src="libs/cannon.min.js"></script>
+<script type="text/javascript" src="libs/three.min.js"></script>
+<script type="text/javascript" src="libs/OrbitControls.js"></script>
+<!-- <script type="text/javascript" src="dice/dice.js"></script> -->
+<script type="text/javascript">
+
+var box = null;
+var canvas = null;
+$(document).ready(()=>{
+	makeCommon();
+	matter2();
+	animate();
+});
+
+//그려내기
+function animate() {
+	requestAnimationFrame( animate );
+	controls.update();
+	renderer.render( scene, camera );
+}
+
+function makeCommon() {
+	canvas = document.querySelector("#canvas");
+	wh = canvas.offsetWidth;
+	canvas.style.height=wh+'px';
+	ht = canvas.offsetHeight;
+	console.log('canvas size', wh, ht);
+
+	//공간생성
+	scene = new THREE.Scene();
+	scene.background = new THREE.Color(0xffffff);
+
+	//빛 세팅
+	//var ambientLight = new THREE.AmbientLight(0x2894ed);
+	light = new THREE.RectAreaLight(0x2894ed, 3, 10, 10);
+	//light.castShadow = true;
+	light.position.set( 5, 5, 0);
+	light.lookAt( 0, 0, 0 );
+	scene.add(light);
+
+	//카메라 세팅
+	camera = new THREE.PerspectiveCamera( 45, 1, 0.1, 1000 );
+	camera.position.set(0,0,100);
+	
+	//rendering 엔진
+	renderer = new THREE.WebGLRenderer({
+		antialias: true,
+		alpha: 1
+	});
+	renderer.setSize( wh, ht );
+	//renderer.setClearColor(0xffffff)
+	//renderer.setClearAlpha(0.1)
+	canvas.appendChild( renderer.domElement );
+
+	// 카메라컨트롤
+	controls = new THREE.OrbitControls( camera, renderer.domElement );
+}
+
+function matter1() {
+
+	//피사체 (부피, 질감) 세팅 : 물체(Mesh) = 뼈대(Geometry) + 표면(Material), 꼭지점(Vertex), 삼각형 면(Face)
+	var geometry = new THREE.BoxGeometry(5,5,5);
+
+	var material1 = new THREE.MeshBasicMaterial( { map: new THREE.TextureLoader().load( '1dice.png' ) } );
+	var material2 = new THREE.MeshBasicMaterial( { map: new THREE.TextureLoader().load( '2dice.png' ) } );
+	var material3 = new THREE.MeshBasicMaterial( { map: new THREE.TextureLoader().load( '3dice.png' ) } );
+	var material4 = new THREE.MeshBasicMaterial( { map: new THREE.TextureLoader().load( '4dice.png' ) } );
+	var material5 = new THREE.MeshBasicMaterial( { map: new THREE.TextureLoader().load( '5dice.png' ) } );
+	var material6 = new THREE.MeshBasicMaterial( { map: new THREE.TextureLoader().load( '6dice.png' ) } );
+	var materials = [
+		material1,
+		material2,
+		material3,
+		material4,
+		material5,
+		material6,
+	]
+	var cube = new THREE.Mesh( geometry, materials );
+	cube.rotateX(0.2);
+	cube.rotateY(0.5);
+	scene.add( cube );
+
+	//움직임
+}
+
+function matter2() {
+
+	//피사체 (부피, 질감) 세팅 : 물체(Mesh) = 뼈대(Geometry) + 표면(Material), 꼭지점(Vertex), 삼각형 면(Face)
+	var vertices = [[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+				[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]];
+	var faces = [[0, 3, 2, 1, 1], [1, 2, 6, 5, 2], [0, 1, 5, 4, 3],
+			[3, 7, 6, 2, 4], [0, 4, 7, 3, 5], [4, 5, 6, 7, 6]];
+
+	//function (vertices, faces, radius, tab, af, chamfer) 
+	//create_geom(vertices, faces, radius, 0.1, Math.PI / 4, 0.96);
+	var vectors = new Array(vertices.length);
+	for (var i = 0; i < vertices.length; ++i) {
+		vectors[i] = (new THREE.Vector3).fromArray(vertices[i]).normalize();
+	}
+	var cg = chamfer_geom(vectors, faces, 0.96);
+	var geom = make_geom(cg.vectors, cg.faces, 25, 0.1, Math.PI / 4);
+	//geom.cannon_shape = create_shape(vectors, faces, 250);
+
+	var geometry = geom;
+
+	//var materials = new THREE.MeshFaceMaterial(create_dice_materials(standart_d6_dice_face_labels, 200, 1.0));
+	var materials = [
+		new THREE.MeshBasicMaterial({color:'red',  wireframe: true}), 
+		new THREE.MeshBasicMaterial({color:'green',  wireframe: false }), 
+		new THREE.MeshBasicMaterial({color:'red',  wireframe: true}), 
+		new THREE.MeshBasicMaterial({color:'red',  wireframe: true}), 
+		new THREE.MeshBasicMaterial({color:'red',  wireframe: true}), 
+		new THREE.MeshBasicMaterial({color:'red',  wireframe: true}), 
+		new THREE.MeshBasicMaterial({color:'red',  wireframe: true}), 
+		new THREE.MeshBasicMaterial({color:'red',  wireframe: true}), 
+	];
+
+	var cube = new THREE.Mesh( geometry, materials );
+	cube.rotateX(0.2);
+	cube.rotateY(0.5);
+	scene.add( cube );
+
+	//움직임
+}
+
+var make_geom =  function(vertices, faces, radius, tab, af) {
+	var geom = new THREE.Geometry();
+	for (var i = 0; i < vertices.length; ++i) {
+		var vertex = vertices[i].multiplyScalar(radius);
+		vertex.index = geom.vertices.push(vertex) - 1;
+	}
+	for (var i = 0; i < faces.length; ++i) {
+		var ii = faces[i], fl = ii.length - 1;
+		var aa = Math.PI * 2 / fl;
+		for (var j = 0; j < fl - 2; ++j) {
+			geom.faces.push(new THREE.Face3(ii[0], ii[j + 1], ii[j + 2], [geom.vertices[ii[0]],
+						geom.vertices[ii[j + 1]], geom.vertices[ii[j + 2]]], 0, ii[fl] + 1));
+			geom.faceVertexUvs[0].push([
+					new THREE.Vector2((Math.cos(af) + 1 + tab) / 2 / (1 + tab),
+						(Math.sin(af) + 1 + tab) / 2 / (1 + tab)),
+					new THREE.Vector2((Math.cos(aa * (j + 1) + af) + 1 + tab) / 2 / (1 + tab),
+						(Math.sin(aa * (j + 1) + af) + 1 + tab) / 2 / (1 + tab)),
+					new THREE.Vector2((Math.cos(aa * (j + 2) + af) + 1 + tab) / 2 / (1 + tab),
+						(Math.sin(aa * (j + 2) + af) + 1 + tab) / 2 / (1 + tab))]);
+		}
+	}
+	geom.computeFaceNormals();
+	geom.boundingSphere = new THREE.Sphere(new THREE.Vector3(), radius);
+	return geom;
+}
+
+var chamfer_geom = function(vectors, faces, chamfer) {
+	var chamfer_vectors = [], chamfer_faces = [], corner_faces = new Array(vectors.length);
+	for (var i = 0; i < vectors.length; ++i) corner_faces[i] = [];
+	for (var i = 0; i < faces.length; ++i) {
+		var ii = faces[i], fl = ii.length - 1;
+		var center_point = new THREE.Vector3();
+		var face = new Array(fl);
+		for (var j = 0; j < fl; ++j) {
+			var vv = vectors[ii[j]].clone();
+			center_point.add(vv);
+			corner_faces[ii[j]].push(face[j] = chamfer_vectors.push(vv) - 1);
+		}
+		center_point.divideScalar(fl);
+		for (var j = 0; j < fl; ++j) {
+			var vv = chamfer_vectors[face[j]];
+			vv.subVectors(vv, center_point).multiplyScalar(chamfer).addVectors(vv, center_point);
+		}
+		face.push(ii[fl]);
+		chamfer_faces.push(face);
+	}
+	for (var i = 0; i < faces.length - 1; ++i) {
+		for (var j = i + 1; j < faces.length; ++j) {
+			var pairs = [], lastm = -1;
+			for (var m = 0; m < faces[i].length - 1; ++m) {
+				var n = faces[j].indexOf(faces[i][m]);
+				if (n >= 0 && n < faces[j].length - 1) {
+					if (lastm >= 0 && m != lastm + 1) pairs.unshift([i, m], [j, n]);
+					else pairs.push([i, m], [j, n]);
+					lastm = m;
+				}
+			}
+			if (pairs.length != 4) continue;
+			chamfer_faces.push([chamfer_faces[pairs[0][0]][pairs[0][1]],
+					chamfer_faces[pairs[1][0]][pairs[1][1]],
+					chamfer_faces[pairs[3][0]][pairs[3][1]],
+					chamfer_faces[pairs[2][0]][pairs[2][1]], -1]);
+		}
+	}
+	for (var i = 0; i < corner_faces.length; ++i) {
+		var cf = corner_faces[i], face = [cf[0]], count = cf.length - 1;
+		while (count) {
+			for (var m = faces.length; m < chamfer_faces.length; ++m) {
+				var index = chamfer_faces[m].indexOf(face[face.length - 1]);
+				if (index >= 0 && index < 4) {
+					if (--index == -1) index = 3;
+					var next_vertex = chamfer_faces[m][index];
+					if (cf.indexOf(next_vertex) >= 0) {
+						face.push(next_vertex);
+						break;
+					}
+				}
+			}
+			--count;
+		}
+		face.push(-1);
+		chamfer_faces.push(face);
+	}
+	return { vectors: chamfer_vectors, faces: chamfer_faces };
+}
+
+</script>
+</body>
+</html>
